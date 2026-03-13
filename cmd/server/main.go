@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/gin-gonic/gin"
-	"github.com/octguy/auth-gorm/config"
+	"github.com/octguy/auth-sqlc/config"
 
 	"log"
 )

@@ -1,1 +1,1 @@
-# auth-gorm
+# auth-sqlc
