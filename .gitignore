@@ -1,3 +1,1 @@
 .env
-migrate-down.sh
-migrate-up.sh
