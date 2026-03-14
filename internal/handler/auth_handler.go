@@ -2,6 +2,7 @@ package handler
 
 import (
 	"errors"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -27,6 +28,7 @@ func NewAuthHandler(authSvc service.AuthService) *AuthHandler {
 func (h *AuthHandler) Register(c *gin.Context) {
 	var req model.RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Printf("[WARN] register bad request: %v", err)
 		response.Error(c, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -37,6 +39,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 			response.Error(c, http.StatusConflict, err.Error())
 			return
 		}
+		log.Printf("[ERROR] register internal error: %v", err)
 		response.Error(c, http.StatusInternalServerError, "registration failed")
 		return
 	}
@@ -48,6 +51,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req model.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Printf("[WARN] login bad request: %v", err)
 		response.Error(c, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -58,6 +62,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 			response.Error(c, http.StatusUnauthorized, err.Error())
 			return
 		}
+		log.Printf("[ERROR] login internal error: %v", err)
 		response.Error(c, http.StatusInternalServerError, "login failed")
 		return
 	}

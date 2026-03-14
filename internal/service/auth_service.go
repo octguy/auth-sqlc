@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -37,9 +38,21 @@ type authService struct {
 	tokenTTL  time.Duration
 }
 
+// NewAuthService wires the service with its dependencies.
+func NewAuthService(repo repository.UserRepository, jwtSecret string, tokenTTL time.Duration) AuthService {
+	return &authService{
+		repo:      repo,
+		jwtSecret: []byte(jwtSecret),
+		tokenTTL:  tokenTTL,
+	}
+}
+
 func (s *authService) Register(ctx context.Context, req *model.RegisterRequest) (*model.AuthResponse, error) {
+	log.Printf("[INFO] register attempt: email=%s username=%s", req.Email, req.Username)
+
 	hashed, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
+		log.Printf("[ERROR] register failed - hashing password: email=%s error=%v", req.Email, err)
 		return nil, fmt.Errorf("hashing password: %w", err)
 	}
 
@@ -51,8 +64,10 @@ func (s *authService) Register(ctx context.Context, req *model.RegisterRequest) 
 
 	if err := s.repo.Create(ctx, user); err != nil {
 		if errors.Is(err, repository.ErrEmailDuplicate) {
+			log.Printf("[WARN] register failed - email already taken: email=%s", req.Email)
 			return nil, ErrEmailTaken
 		}
+		log.Printf("[ERROR] register failed - creating user: email=%s error=%v", req.Email, err)
 		return nil, fmt.Errorf("creating user: %w", err)
 	}
 
@@ -61,17 +76,22 @@ func (s *authService) Register(ctx context.Context, req *model.RegisterRequest) 
 		return nil, err
 	}
 
+	log.Printf("[INFO] register successful: user_id=%s email=%s", user.ID, user.Email)
 	return &model.AuthResponse{Token: token, User: user}, nil
 }
 
 func (s *authService) Login(ctx context.Context, req *model.LoginRequest) (*model.AuthResponse, error) {
+	log.Printf("[INFO] login attempt: email=%s", req.Email)
+
 	user, err := s.repo.FindByEmail(ctx, req.Email)
 	if err != nil {
+		log.Printf("[WARN] login failed - user not found: email=%s", req.Email)
 		// always return the same error to prevent user enumeration
 		return nil, ErrInvalidCredentials
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
+		log.Printf("[WARN] login failed - invalid password: email=%s", req.Email)
 		return nil, ErrInvalidCredentials
 	}
 
@@ -81,6 +101,7 @@ func (s *authService) Login(ctx context.Context, req *model.LoginRequest) (*mode
 		return nil, err
 	}
 
+	log.Printf("[INFO] login successful: user_id=%s email=%s", user.ID, user.Email)
 	return &model.AuthResponse{Token: token, User: user}, nil
 }
 
@@ -99,6 +120,10 @@ func (s *authService) ValidateToken(tokenStr string) (*Claims, error) {
 	}
 
 	return claims, nil
+}
+
+func (s *authService) GetProfile(ctx context.Context, userID uuid.UUID) (*model.User, error) {
+	return s.repo.FindByID(ctx, userID)
 }
 
 func (s *authService) generateToken(userID uuid.UUID) (string, error) {
