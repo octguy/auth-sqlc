@@ -27,6 +27,9 @@ reset-db:
 migrate-create:
 	migrate create -ext sql -dir $(MIGRATIONS_PATH) -seq $(name)
 
+# TIDY
+tidy:
+	go mod tidy
 
 # SQLC
 sqlc:
@@ -37,8 +40,17 @@ run:
 	go run ./cmd/server
 
 # DOCKER
-docker-build:
-	# TODO: docker build command
+docker-up:
+	docker-compose up -d
 
-docker-run:
-	# TODO: docker run command
+docker-down:
+	docker-compose down
+
+docker-logs:
+	docker-compose logs -f
+
+docker-clean:
+	docker-compose down -v
+
+docker-shell-postgres:
+	docker-compose exec postgres psql -U $(DB_USER) -d $(DB_NAME)

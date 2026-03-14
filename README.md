@@ -59,6 +59,51 @@ gin-auth/
 
 ---
 
+## Quick Start
+
+Choose your preferred way to run the project:
+
+### Option 1: Run with Docker (Recommended)
+
+```bash
+# Start all services (PostgreSQL, migrations, and app)
+make docker-up
+
+# View logs
+make docker-logs
+
+# Stop everything
+make docker-down
+
+# Reset database and restart
+make docker-clean
+make docker-up
+```
+
+The app will be available at `http://localhost:8080`
+
+### Option 2: Run Locally
+
+```bash
+# Install dependencies
+go mod tidy
+
+# Configure environment
+cp .env.example .env
+# Edit .env with your values
+
+# Start PostgreSQL and run migrations
+brew services start postgresql  # or: sudo systemctl start postgresql
+make migrate-up
+
+# Run the server
+make run
+```
+
+The app will be available at `http://localhost:8080`
+
+---
+
 ## Step-by-step setup
 
 ### Step 1 — Prerequisites
@@ -371,4 +416,66 @@ sqlc generate
 
 ```bash
 psql -U postgres -d gin_auth -f db/migrations/001_create_users.down.sql
+```
+
+---
+
+## Docker Commands
+
+All Docker operations are available via Makefile for convenience:
+
+| Command | Description |
+|---------|-------------|
+| `make docker-up` | Start all services (app, database, migrations) |
+| `make docker-down` | Stop and remove containers |
+| `make docker-logs` | View logs from all services |
+| `make docker-clean` | Remove containers and reset database volume |
+| `make docker-shell-postgres` | Connect to PostgreSQL shell |
+
+### Running new migrations in Docker
+
+When you add new migration files to `db/migrations/`:
+
+**Option 1: Restart with clean database**
+```bash
+make docker-clean
+make docker-up
+```
+
+**Option 2: Just restart migrations**
+```bash
+docker-compose up migrate
+```
+
+---
+
+## Local Development Commands
+
+| Command | Description |
+|---------|-------------|
+| `make migrate-up` | Run all pending migrations |
+| `make migrate-down` | Rollback 1 migration |
+| `make migrate-down-n n=2` | Rollback n migrations |
+| `make migrate-create name=my_migration` | Create new migration file |
+| `make reset-db` | Reset database (down all, then up) |
+| `make run` | Start the development server |
+| `make sqlc` | Regenerate sqlc code from SQL queries |
+| `make tidy` | Tidy Go dependencies |
+
+---
+
+## Logging
+
+The application logs important events:
+
+- **[INFO]** - Register/login attempts and successes
+- **[WARN]** - Validation failures, email conflicts, invalid credentials
+- **[ERROR]** - Internal errors (database, hashing, etc.)
+
+Example log output:
+```
+[INFO] register attempt: email=user@example.com username=john
+[INFO] register successful: user_id=123e4567-e89b-12d3-a456-426614174000 email=user@example.com
+[INFO] login attempt: email=user@example.com
+[INFO] login successful: user_id=123e4567-e89b-12d3-a456-426614174000 email=user@example.com
 ```
